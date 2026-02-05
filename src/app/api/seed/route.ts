@@ -1,55 +1,38 @@
 import { createClient } from '@supabase/supabase-js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-import { pipeline } from '@xenova/transformers';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// ✅ Yahan maine Sidat.net ka asal data daal diya hai
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
+const model = genAI.getGenerativeModel({ model: "text-embedding-004" }); // Google ka halka model
+
+// ✅ Sidat.net Data
 const websiteData = [
-  // --- HOME PAGE DATA ---
   "Sidat Technologies & Digital is a global creative innovation company.",
-  "We are your trusted partner in creating smart, scalable, and future-ready digital solutions.",
-  "Our main services include Technology, AI Hub, Digital Marketing, Creative Solutions, and Business Process Outsourcing.",
-  "We help businesses stay ahead with innovative and intelligent tech solutions.",
-  
-  // --- SERVICES DATA ---
-  "Web Designing: We design visually engaging and mobile-responsive websites that tell your brand story.",
-  "Custom Development: We build custom websites, iOS, Android, and hybrid apps that solve real-world problems.",
-  "Mobile App Development: We design and develop mobile solutions for iOS and Android to scale your business.",
-  "Digital Marketing: We support brands with data-driven strategies, creative content, and targeted campaigns.",
-  "Creative Solutions: We provide full-scale creative media services to captivate and convert your audience.",
-  "Business Process Outsourcing (BPO): Sidat gives you reliable virtual assistance and back-office support to boost productivity.",
-  "AI Hub: We provide Artificial Intelligence solutions to modernize your business.",
-  
-  // --- COMPANY / ABOUT US DATA ---
-  "Vision: To be a global leader in delivering innovative and human-centric digital solutions.",
-  "Mission: To solve real-world business challenges through innovative technologies and tailored strategies.",
-  "Our Process: We start with Discovery & Strategy, move to Concept & Planning, then Design & UX, and finally Development & Implementation.",
-  "Client Testimonial: 'Sidat Technologies has exceeded our expectations. Their website management and social media services have been instrumental in our growth.' - Humaira Bourne.",
-  "We are committed to excellence, transparency, and measurable results in every project.",
-  
-  // --- CONTACT INFO ---
-  "You can contact Sidat Technologies for any digital project or consultation.",
-  "We serve clients globally including Pakistan and international markets."
+  "We create smart, scalable digital solutions.",
+  "Services: Web Design, Custom Development, Mobile Apps (iOS/Android).",
+  "We also offer Digital Marketing, SEO, and UI/UX Design.",
+  "Our AI Hub provides Artificial Intelligence solutions.",
+  "Business Process Outsourcing (BPO) services are available.",
+  "Contact us for projects in Pakistan and globally.",
+  "Client Testimonial: 'Sidat Technologies exceeded our expectations' - Humaira Bourne."
 ];
 
 export async function GET() {
   try {
-    // 1. Purana data delete karein
+    // 1. Purana data saaf karein
     await supabase.from('documents').delete().neq('id', 0);
-
-    // 2. Local AI Model load karein
-    const generateEmbedding = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
     const records = [];
 
-    // 3. Har line ka vector banayein
+    // 2. Google se Vectors banwayen (Fast & Cloud-based)
     for (const text of websiteData) {
-      const output = await generateEmbedding(text, { pooling: 'mean', normalize: true });
-      const embedding = Array.from(output.data); 
+      const result = await model.embedContent(text);
+      const embedding = result.embedding.values;
       
       records.push({
         content: text,
@@ -57,15 +40,11 @@ export async function GET() {
       });
     }
 
-    // 4. Database mein save karein
+    // 3. Database mein save
     const { error } = await supabase.from('documents').insert(records);
-
     if (error) throw error;
 
-    return NextResponse.json({ 
-      message: "Sidat.net Data Successfully Uploaded!", 
-      count: records.length 
-    });
+    return NextResponse.json({ message: "Data Uploaded with Google Embeddings!", count: records.length });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
