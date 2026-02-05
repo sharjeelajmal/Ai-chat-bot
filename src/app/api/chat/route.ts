@@ -20,7 +20,7 @@ async function getContext(message: string) {
   // 2. Database mein match dhoonda
   const { data: documents } = await supabase.rpc('match_documents', {
     query_embedding: embedding,
-    match_threshold: 0.5, // Thora strict rakha hai taake har cheez match na ho
+    match_threshold: 0.3, // Thora strict rakha hai taake har cheez match na ho
     match_count: 3,       // Sirf top 3 results layen
   });
 
