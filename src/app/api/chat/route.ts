@@ -18,7 +18,7 @@ async function getContext(message: string) {
 
   const { data: documents } = await supabase.rpc('match_documents', {
     query_embedding: embedding,
-    match_threshold: 0.0, // Data aanay do, AI khud filter karega
+    match_threshold: 0.2, // Thora sa filter rakhein taake bilkul kachra na aaye
     match_count: 3,
   });
 
@@ -30,15 +30,15 @@ export async function POST(req: Request) {
     const { message } = await req.json();
     const context = await getContext(message);
 
-    // --- CHANGE: STRICT PROMPT ---
     const prompt = `
-      You are a strictly professional AI assistant for 'Sidat Technologies'.
+      You are a helpful assistant for 'Sidat Technologies'.
       
-      STRICT RULES:
-      1. Use ONLY the provided CONTEXT to answer.
-      2. If the answer is NOT in the CONTEXT, you MUST say: "I am sorry, I can only answer questions related to Sidat Technologies."
-      3. DO NOT use your general knowledge (e.g., do not explain cities, cooking, or world facts).
-      4. Keep answers short (under 2 sentences).
+      IMPORTANT RULES:
+      1. Assume that "you", "we", or "the company" refers to 'Sidat Technologies'.
+      2. Use the CONTEXT below to answer.
+      3. If the answer is in the context, answer directly and professionally.
+      4. If the question is completely unrelated (e.g., about cities, food, general knowledge) and NOT in the context, say: "I am sorry, I can only answer questions related to Sidat Technologies."
+      5. Keep your answer SHORT (maximum 2 sentences).
 
       CONTEXT:
       ${context}
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: "llama-3.3-70b-versatile",
-      temperature: 0, // 0 Temperature = No Creativity (Sirf Facts)
+      temperature: 0.1, // Thora sa barhaya taake wo "You" ko samajh sake
     });
 
     const reply = chatCompletion.choices[0]?.message?.content || "No response";
